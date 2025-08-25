@@ -4,9 +4,13 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "src/hal/hal_display.h"
+#include "src/hal/hal_button.h"
 #include "src/ui/ui_logo.h"
 #include "src/hal/hal_bms280.h"
 
+#include "src/hal/hal_dipswitch.h"
+#include "src/ui/ui_systemInfo_screen.h"
+#include "src/ui/ui_network_screen.h"
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
@@ -26,7 +30,6 @@ extern void uiTask(void* pvParameters);
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin(8, 9); // SDA = 8, SCL = 9 for ESP32-C3 Supermini
   hal_display_init();
   hal_bms280_init();
   // Only use HAL print for display output
@@ -35,6 +38,8 @@ void setup() {
   display1.setTextSize(1);
   display1.setTextColor(SSD1306_WHITE);
   display1.setCursor(60, 40);
+  display1.println("INIT:");
+  display1.setCursor(60, 50);
   display1.print("Display 1");
   display1.display();
 
@@ -42,6 +47,8 @@ void setup() {
   display2.setTextSize(1);
   display2.setTextColor(SSD1306_WHITE);
   display2.setCursor(60, 40);
+  display2.println("INIT:");
+  display2.setCursor(60, 50);
   display2.print("Display 2");
   display2.display();
 
@@ -54,82 +61,53 @@ void setup() {
 }
 
 void loop() {
+  
+  // Debug: print all button states to Serial
+  Serial.print("Button states: ");
+  for (int i = 0; i < 4; ++i) {
+    Serial.print(hal_button_get_name((ButtonType)i));
+    Serial.print("=");
+    Serial.print(hal_button_is_pressed((ButtonType)i) ? "PRESSED" : "UP");
+    Serial.print(" ");
+  }
+  Serial.println();
+  
+  // Track last pressed button
+  static int lastPressed = -1;
+  static bool prevState[4] = {false, false, false, false};
+  for (int i = 0; i < 4; ++i) {
+    bool curr = hal_button_is_pressed((ButtonType)i);
+    if (curr && !prevState[i]) {
+      lastPressed = i;
+    }
+    prevState[i] = curr;
+  }
+  
   // System info for display1 with DIP switch state table
   float temp = 0, hum = 0, pres = 0;
   bool bme_ok = hal_bms280_read(&temp, &hum, &pres);
-  hal_display_clear(DISPLAY_1);
-  display1.setTextSize(1);
-  display1.setTextColor(SSD1306_WHITE);
-  int16_t x1, y1;
-  uint16_t w, h;
-  display1.getTextBounds("SYSTEM", 0, 0, &x1, &y1, &w, &h);
-  display1.setCursor((SCREEN_WIDTH - w) / 2, 0);
-  display1.print("SYSTEM");
-  display1.setTextSize(1);
-  display1.setCursor(0, 12);
-  display1.print("RAM: ");
   size_t freeHeap = ESP.getFreeHeap();
   size_t totalHeap = ESP.getHeapSize();
-  int ramPercent = (int)((freeHeap * 100) / totalHeap);
-  display1.print(ramPercent);
-  display1.print("%");
-  display1.setCursor(0, 24);
-  if (bme_ok) {
-    display1.print("T: ");
-    display1.print(temp, 1);
-    display1.print("C");
-    display1.setCursor(0, 36);
-    display1.print("H: ");
-    display1.print(hum, 1);
-    display1.print("%");
-    display1.setCursor(0, 48);
-    display1.print("P: ");
-    display1.print(pres / 100.0, 1);
-    display1.print("hPa");
-  } else {
-    display1.print("BME280 Error");
-  }
+  bool dipswitchStates[6];
+  hal_dipswitch_read_states(dipswitchStates);
+  ui_systemInfo_screen_render(
+    display1,
+    temp, hum, pres,
+    freeHeap, totalHeap,
+    lastPressed,
+    lastPressed >= 0 ? hal_button_get_name((ButtonType)lastPressed) : nullptr,
+    dipswitchStates,
+    6
+  );
 
-  // DIP switch state table (right side)
-  int dipPins[6] = {1, 2, 3, 4, 5, 6};
-  int dipStates[6];
-  for (int i = 0; i < 6; ++i) {
-    pinMode(dipPins[i], INPUT_PULLUP);
-    dipStates[i] = digitalRead(dipPins[i]); // HIGH = up, LOW = down
-  }
-    int colX[2] = {84, 104};
-    int rowY[3] = {12, 29, 46};
-    for (int row = 0; row < 3; ++row) {
-      for (int col = 0; col < 2; ++col) {
-        int idx = row * 2 + col; // row pairs: (1,2), (3,4), (5,6)
-        int x = colX[col];
-        int y = rowY[row];
-        if (dipStates[idx] == LOW) {
-          display1.drawRect(x - 2, y - 2, 14, 14, SSD1306_WHITE);
-        }
-        display1.setCursor(x + 2, y + 1);
-        display1.print(dipPins[idx]);
-      }
-    }
-  display1.display();
-
-  // Network info for display2
-  hal_display_clear(DISPLAY_2);
-  display2.setTextSize(1);
-  display2.setTextColor(SSD1306_WHITE);
-  display2.getTextBounds("NETWORK", 0, 0, &x1, &y1, &w, &h);
-  display2.setCursor((SCREEN_WIDTH - w) / 2, 0);
-  display2.print("NETWORK");
-  display2.setTextSize(1);
-  display2.setCursor(0, 12);
-  display2.print("Home SSID: HomeWiFi"); // Replace with actual SSID
-  display2.setCursor(0, 24);
-  display2.print("Local SSID: ESP32Net"); // Replace with actual SSID
-  display2.setCursor(0, 36);
-  display2.print("IP: 192.168.1.100");    // Replace with actual IP
-  display2.setCursor(0, 48);
-  display2.print("Status: Connected");    // Replace with actual status
-  display2.display();
+  // Network INFO for display2
+  ui_network_screen_render(
+    display2,
+    "HomeWiFi",   // Replace with actual SSID
+    "ESP32Net",   // Replace with actual SSID
+    "192.168.1.100", // Replace with actual IP
+    "Connected"   // Replace with actual status
+  );
 
   delay(2000); // Update every 2 seconds
 }

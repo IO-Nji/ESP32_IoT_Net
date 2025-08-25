@@ -13,6 +13,8 @@ typedef enum {
 
 void hal_button_init();
 bool hal_button_is_pressed(ButtonType button);
+
 void hal_button_update();
+const char* hal_button_get_name(ButtonType button);
 
 #endif // HAL_BUTTON_H
