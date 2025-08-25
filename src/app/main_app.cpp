@@ -2,7 +2,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "src/hal/hal_display.h"
-#include "src/hal/hal_sensor.h"
+#include "src/hal/hal_bme280.h"
 #include "src/services/hal_network.h"
 #include "src/hal/hal_button.h"
 #include "src/services/ui_state_machine.h"
@@ -51,11 +51,11 @@ void uiTask(void* pvParameters) {
 		snprintf(buf, sizeof(buf), "Mem: %dKB", 128); // Replace with actual memory usage if available
 		hal_display_print(DISPLAY_2, buf, 2);
 		// BME280 sensor readings
-		SensorData data;
-		if (hal_sensor_read(&data)) {
-			snprintf(buf, sizeof(buf), "T: %.1fC H: %.1f%%", data.temperature, data.humidity);
+	float temp = 0, hum = 0, pres = 0;
+	if (hal_bme280_read(&temp, &hum, &pres)) {
+			snprintf(buf, sizeof(buf), "T: %.1fC H: %.1f%%", temp, hum);
 			hal_display_print(DISPLAY_2, buf, 3);
-			snprintf(buf, sizeof(buf), "P: %.1fhPa", data.pressure);
+			snprintf(buf, sizeof(buf), "P: %.1fhPa", pres / 100.0);
 			hal_display_print(DISPLAY_2, buf, 4);
 		} else {
 			hal_display_print(DISPLAY_2, "Sensor Error", 3);
@@ -66,10 +66,10 @@ void uiTask(void* pvParameters) {
 
 // Sensor Task: Polls sensors and updates data
 void sensorTask(void* pvParameters) {
-	hal_sensor_init();
-	SensorData data;
+	hal_bme280_init();
+	float temp = 0, hum = 0, pres = 0;
 	while (true) {
-		hal_sensor_read(&data);
+		hal_bme280_read(&temp, &hum, &pres);
 		// Sensor data is now only used by uiTask for display
 		vTaskDelay(pdMS_TO_TICKS(1000));
 	}

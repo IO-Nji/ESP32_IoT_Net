@@ -6,11 +6,13 @@
 #include "src/hal/hal_display.h"
 #include "src/hal/hal_button.h"
 #include "src/ui/ui_logo.h"
-#include "src/hal/hal_bms280.h"
+#include "src/hal/hal_bme280.h"
+#include "src/hal/hal_wifi.h"
 
 #include "src/hal/hal_dipswitch.h"
 #include "src/ui/ui_systemInfo_screen.h"
 #include "src/ui/ui_network_screen.h"
+#include "src/services/web_server.h"
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
@@ -31,7 +33,11 @@ extern void uiTask(void* pvParameters);
 void setup() {
   Serial.begin(115200);
   hal_display_init();
-  hal_bms280_init();
+  hal_bme280_init();
+  // Initialize WiFi in AP+STA mode
+  hal_wifi_init_ap_sta("EspNET", "esp32net!", "Home-WiFi", "homepass");
+  // Start web server
+  web_server_init();
   // Only use HAL print for display output
   // Show logo and startup text on both displays
   logoDisplay(display1, 14, 12);
@@ -85,7 +91,7 @@ void loop() {
   
   // System info for display1 with DIP switch state table
   float temp = 0, hum = 0, pres = 0;
-  bool bme_ok = hal_bms280_read(&temp, &hum, &pres);
+  bool bme_ok = hal_bme280_read(&temp, &hum, &pres);
   size_t freeHeap = ESP.getFreeHeap();
   size_t totalHeap = ESP.getHeapSize();
   bool dipswitchStates[6];
@@ -109,5 +115,7 @@ void loop() {
     "Connected"   // Replace with actual status
   );
 
+  // Handle web server requests
+  web_server_loop();
   delay(2000); // Update every 2 seconds
 }
