@@ -4,6 +4,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 #include "src/hal/hal_display.h"
+#include "src/ui/ui_logo.h"
 #include "src/hal/hal_bms280.h"
 
 #include <Adafruit_GFX.h>
@@ -12,36 +13,7 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
-struct LogoRect {
-  int x, y, w, h;
-};
-
-const int FINAL_LOGO_DELAY = 1000;
-const int LOGO_STEP_DELAY = 50;
-
-const LogoRect logoRects[] = {
-  { 54, 14, 12, 6 },  // .
-  { 40, 8, 12, 14 },  // i
-  { 68, 8, 12, 14 },  // i
-  { 26, 8, 12, 24 },  // j
-  { 0, 0, 24, 22 },   // n
-  { 8, 8, 4, 14 },    // n detail
-  { 82, 8, 24, 14 },  // O
-  { 94, 10, 6, 6 }    // O detail
-};
-
-void logoDisplay(Adafruit_SSD1306& display, int startX, int startY) {
-  display.clearDisplay();
-  for (int i = 0; i < 6; ++i) {
-    display.drawRect(logoRects[i].x + startX, logoRects[i].y + startY, logoRects[i].w, logoRects[i].h, SSD1306_WHITE);
-    display.display();
-    delay(LOGO_STEP_DELAY);
-  }
-  display.drawRect(logoRects[6].x + startX, logoRects[6].y + startY, logoRects[6].w, logoRects[6].h, SSD1306_WHITE);
-  display.drawRect(logoRects[7].x + startX, logoRects[7].y + startY, logoRects[7].w, logoRects[7].h, SSD1306_WHITE);
-  display.display();
-  delay(FINAL_LOGO_DELAY);
-}
+#include "src/ui/ui_logo.h"
 
 // Global display objects
 Adafruit_SSD1306 display1(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -82,7 +54,7 @@ void setup() {
 }
 
 void loop() {
-  // System info for display1 with real BME280 data
+  // System info for display1 with DIP switch state table
   float temp = 0, hum = 0, pres = 0;
   bool bme_ok = hal_bms280_read(&temp, &hum, &pres);
   hal_display_clear(DISPLAY_1);
@@ -100,25 +72,45 @@ void loop() {
   size_t totalHeap = ESP.getHeapSize();
   int ramPercent = (int)((freeHeap * 100) / totalHeap);
   display1.print(ramPercent);
-  display1.print("% (");
-  display1.print(freeHeap);
-  display1.print(")");
+  display1.print("%");
   display1.setCursor(0, 24);
   if (bme_ok) {
-    display1.print("Temp: ");
+    display1.print("T: ");
     display1.print(temp, 1);
     display1.print("C");
     display1.setCursor(0, 36);
-    display1.print("Hum: ");
+    display1.print("H: ");
     display1.print(hum, 1);
     display1.print("%");
     display1.setCursor(0, 48);
-    display1.print("Pres: ");
+    display1.print("P: ");
     display1.print(pres / 100.0, 1);
     display1.print("hPa");
   } else {
     display1.print("BME280 Error");
   }
+
+  // DIP switch state table (right side)
+  int dipPins[6] = {1, 2, 3, 4, 5, 6};
+  int dipStates[6];
+  for (int i = 0; i < 6; ++i) {
+    pinMode(dipPins[i], INPUT_PULLUP);
+    dipStates[i] = digitalRead(dipPins[i]); // HIGH = up, LOW = down
+  }
+    int colX[2] = {84, 104};
+    int rowY[3] = {12, 29, 46};
+    for (int row = 0; row < 3; ++row) {
+      for (int col = 0; col < 2; ++col) {
+        int idx = row * 2 + col; // row pairs: (1,2), (3,4), (5,6)
+        int x = colX[col];
+        int y = rowY[row];
+        if (dipStates[idx] == LOW) {
+          display1.drawRect(x - 2, y - 2, 14, 14, SSD1306_WHITE);
+        }
+        display1.setCursor(x + 2, y + 1);
+        display1.print(dipPins[idx]);
+      }
+    }
   display1.display();
 
   // Network info for display2
