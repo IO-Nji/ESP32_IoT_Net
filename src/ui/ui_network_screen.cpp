@@ -1,7 +1,10 @@
+
 #include "src/ui/ui_network_screen.h"
 #include <Adafruit_SSD1306.h>
+#include "src/services/network_service.h"
 
-void ui_network_screen_render(Adafruit_SSD1306& display, const char* homeSSID, const char* localSSID, const char* ip, const char* status) {
+void ui_network_screen_render(Adafruit_SSD1306& display) {
+    NetworkInfo info = network_service_get_info();
     display.clearDisplay();
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
@@ -12,19 +15,19 @@ void ui_network_screen_render(Adafruit_SSD1306& display, const char* homeSSID, c
     display.print("NETWORK");
     display.setTextSize(1);
     display.setCursor(0, 0);
-    display.print("Home: ");
-    display.print(homeSSID);
+    display.print("AP SSID: ");
+    display.print(info.ap_ssid);
     display.setCursor(0, 10);
-    display.print("IP: ");
-    display.print(ip);
+    display.print("AP IP: ");
+    display.print(info.ap_ip);
     display.setCursor(0, 20);
-    display.print("Local: ");
-    display.print(localSSID);
+    display.print("STA SSID: ");
+    display.print(info.ssid);
     display.setCursor(0, 30);
-    display.print("IP: ");
-    display.print(ip);
+    display.print("STA IP: ");
+    display.print(info.ip);
     display.setCursor(0, 40);
     display.print("Status: ");
-    display.print(status);
+    display.print(info.connected ? "Connected" : "Disconnected");
     display.display();
 }

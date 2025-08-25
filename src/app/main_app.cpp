@@ -3,7 +3,7 @@
 #include <freertos/task.h>
 #include "src/hal/hal_display.h"
 #include "src/hal/hal_bme280.h"
-#include "src/services/hal_network.h"
+#include "src/services/network_service.h"
 #include "src/hal/hal_button.h"
 #include "src/services/ui_state_machine.h"
 
@@ -33,7 +33,7 @@ void uiTask(void* pvParameters) {
 		}
 
 		// Show network status on display1
-		NetworkInfo info = hal_network_get_info();
+	NetworkInfo info = network_service_get_info();
 		hal_display_clear(DISPLAY_1);
 		hal_display_print(DISPLAY_1, "WiFi SSID:", 0);
 		hal_display_print(DISPLAY_1, info.ssid, 1);
@@ -82,9 +82,9 @@ void networkTask(void* pvParameters) {
 	const char* ap_pass = "password";
 	const char* sta_ssid = "HomeWiFi";
 	const char* sta_pass = "homepass";
-	hal_network_init(ap_ssid, ap_pass, sta_ssid, sta_pass);
+	network_service_init(ap_ssid, ap_pass, sta_ssid, sta_pass);
 	while (true) {
-		NetworkInfo info = hal_network_get_info();
+	NetworkInfo info = network_service_get_info();
 		// ... handle network events, update status ...
 		vTaskDelay(pdMS_TO_TICKS(2000));
 	}

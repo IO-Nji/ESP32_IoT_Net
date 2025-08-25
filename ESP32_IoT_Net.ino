@@ -29,7 +29,6 @@ Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 // Use task implementations from main_app.cpp
 extern void uiTask(void* pvParameters);
 // Removed FreeRTOS task implementations
-
 void setup() {
   Serial.begin(115200);
   hal_display_init();
@@ -107,13 +106,7 @@ void loop() {
   );
 
   // Network INFO for display2
-  ui_network_screen_render(
-    display2,
-    "HomeWiFi",   // Replace with actual SSID
-    "ESP32Net",   // Replace with actual SSID
-    "192.168.1.100", // Replace with actual IP
-    "Connected"   // Replace with actual status
-  );
+  ui_network_screen_render(display2);
 
   // Handle web server requests
   web_server_loop();
