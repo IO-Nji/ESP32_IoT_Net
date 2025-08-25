@@ -1,4 +1,4 @@
-#include "hal_gpio.h"
+#include "src/hal/hal_gpio.h"
 #include <Arduino.h>
 
 void hal_gpio_init() {

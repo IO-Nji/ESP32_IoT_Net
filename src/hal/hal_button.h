@@ -1,8 +1,8 @@
-#pragma once
+#ifndef HAL_BUTTON_H
+#define HAL_BUTTON_H
 #include <stdint.h>
 
 // Button HAL Interface
-
 typedef enum {
     BUTTON_SELECT = 0,
     BUTTON_UP,
@@ -13,4 +13,6 @@ typedef enum {
 
 void hal_button_init();
 bool hal_button_is_pressed(ButtonType button);
-void hal_button_update(); // For debouncing and event generation
+void hal_button_update();
+
+#endif // HAL_BUTTON_H

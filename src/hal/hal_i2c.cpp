@@ -1,4 +1,4 @@
-#include "hal_i2c.h"
+#include "src/hal/hal_i2c.h"
 #include <Wire.h>
 
 void hal_i2c_init() {

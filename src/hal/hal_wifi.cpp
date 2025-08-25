@@ -1,4 +1,4 @@
-#include "hal_wifi.h"
+#include "src/hal/hal_wifi.h"
 #include <WiFi.h>
 
 void hal_wifi_init_ap_sta(const char* ap_ssid, const char* ap_pass, const char* sta_ssid, const char* sta_pass) {
