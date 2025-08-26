@@ -1,3 +1,5 @@
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
 #define SERIAL_DEBUG true // Set to false to disable serial prints
 #ifndef CONFIG_H
 #define CONFIG_H

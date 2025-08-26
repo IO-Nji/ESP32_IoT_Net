@@ -8,4 +8,3 @@
 #include "src/services/ui_state_machine.h"
 
 
-// ...existing code...
