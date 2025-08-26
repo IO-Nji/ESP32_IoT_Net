@@ -14,6 +14,7 @@
 #include "src/ui/ui_timeWeather_screen.h"
 #include "src/services/web_server.h"
 #include "src/services/internet_data_service.h"
+#include "config/config.h"
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
@@ -30,15 +31,15 @@ Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 extern void uiTask(void* pvParameters);
 // Removed FreeRTOS task implementations
 void setup() {
-  Serial.begin(115200);
+  if (SERIAL_DEBUG) Serial.begin(115200);
   hal_display_init();
   hal_bme280_init();
   // Initialize WiFi in AP+STA mode
-  hal_wifi_init_ap_sta("EspNET", "esp32net!", "nji.IO.mini", "10203040");
+  hal_wifi_init_ap_sta(WIFI_AP_SSID, WIFI_AP_PASSWORD, WIFI_STA_SSID, WIFI_STA_PASSWORD);
   // Start web server
   web_server_init();
   // Initialize internet data service (replace with your OpenWeather API key and city)
-  internet_data_service_init("6a3e4157f8bf64b750658b17a152910b", "Berlin");
+  internet_data_service_init(WEATHER_API_KEY, WEATHER_CITY);
   // Only use HAL print for display output
   // Show logo and startup text on both displays
   logoDisplay(display1, 14, 12);
@@ -60,28 +61,27 @@ void setup() {
   display2.display();
 
   delay(5000);
-  Serial.println(F("setup running"));
+  if (SERIAL_DEBUG) Serial.println(F("setup running"));
   // // Create FreeRTOS tasks with increased stack size
   // xTaskCreate(uiTask, "UI Task", 8192, NULL, 1, NULL);
   // xTaskCreate(sensorTask, "Sensor Task", 8192, NULL, 1, NULL);
   // xTaskCreate(networkTask, "Network Task", 8192, NULL, 1, NULL);
 }
 
-void loop() {
-  
-  // Debug: print all button states to Serial
-  Serial.print(F("Button states: "));
-  for (int i = 0; i < 4; ++i) {
-    Serial.print(hal_button_get_name((ButtonType)i));
-  Serial.print(F("="));
-  Serial.print(hal_button_is_pressed((ButtonType)i) ? F("PRESSED") : F("UP"));
-  Serial.print(F(" "));
-  }
-  Serial.println();
-  
-  // Track last pressed button
+// UI responsibility
+void uiLoop() {
   static int lastPressed = -1;
   static bool prevState[4] = {false, false, false, false};
+  if (SERIAL_DEBUG) {
+    Serial.print(F("Button states: "));
+    for (int i = 0; i < 4; ++i) {
+      Serial.print(hal_button_get_name((ButtonType)i));
+      Serial.print(F("="));
+      Serial.print(hal_button_is_pressed((ButtonType)i) ? F("PRESSED") : F("UP"));
+      Serial.print(F(" "));
+    }
+    Serial.println();
+  }
   for (int i = 0; i < 4; ++i) {
     bool curr = hal_button_is_pressed((ButtonType)i);
     if (curr && !prevState[i]) {
@@ -89,8 +89,6 @@ void loop() {
     }
     prevState[i] = curr;
   }
-  
-  // System info for display1 with DIP switch state table
   float temp = 0, hum = 0, pres = 0;
   hal_bme280_read(&temp, &hum, &pres);
   size_t freeHeap = ESP.getFreeHeap();
@@ -106,8 +104,6 @@ void loop() {
     dipswitchStates,
     6
   );
-
-  // Alternate display2 between network and time/weather screens every 5 seconds
   static unsigned long lastSwitch = 0;
   static bool showNetwork = true;
   unsigned long now = millis();
@@ -120,12 +116,28 @@ void loop() {
   } else {
     ui_timeWeather_screen_render(display2);
   }
+}
 
-  // Update and print internet time/weather info every minute
+// Sensor responsibility
+void sensorLoop() {
+  // Currently handled in uiLoop for demo, can be separated for periodic sensor reads
+}
+
+// Network responsibility
+void networkLoop() {
+  web_server_loop();
+}
+
+// Internet data responsibility
+void internetDataLoop() {
   internet_data_service_update();
   internet_data_service_print();
+}
 
-  // Handle web server requests
-  web_server_loop();
+void loop() {
+  uiLoop();
+  sensorLoop();
+  networkLoop();
+  internetDataLoop();
   delay(2000); // Update every 2 seconds
 }
