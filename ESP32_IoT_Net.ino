@@ -7,7 +7,6 @@
 #include "src/ui/ui_logo.h"
 #include "src/hal/hal_bme280.h"
 #include "src/hal/hal_wifi.h"
-
 #include "src/hal/hal_dipswitch.h"
 #include "src/ui/ui_systemInfo_screen.h"
 #include "src/ui/ui_network_screen.h"
@@ -17,11 +16,10 @@
 #include "config/config.h"
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include "src/tasks/task_manager.h"
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
-
-#include "src/ui/ui_logo.h"
 
 // Global display objects
 Adafruit_SSD1306 display1(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
@@ -29,7 +27,9 @@ Adafruit_SSD1306 display2(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 
 // Use task implementations from main_app.cpp
 extern void uiTask(void* pvParameters);
-// Removed FreeRTOS task implementations
+
+SystemState globalState;
+
 void setup() {
   if (SERIAL_DEBUG) Serial.begin(115200);
   hal_display_init();
@@ -48,7 +48,9 @@ void setup() {
   display1.setCursor(60, 40);
   display1.println(F("INIT:"));
   display1.setCursor(60, 50);
-  display1.print(F("Display 1"));
+  display1.print(F("Display "));
+  display1.setTextSize(2);
+  display1.print(F("1"));
   display1.display();
 
   logoDisplay(display2, 14, 12);
@@ -57,15 +59,14 @@ void setup() {
   display2.setCursor(60, 40);
   display2.println(F("INIT:"));
   display2.setCursor(60, 50);
-  display2.print(F("Display 2"));
+  display2.print(F("Display "));
+  display2.setTextSize(2);
+  display2.print(F("2"));
   display2.display();
 
   delay(5000);
   if (SERIAL_DEBUG) Serial.println(F("setup running"));
-  // // Create FreeRTOS tasks with increased stack size
-  // xTaskCreate(uiTask, "UI Task", 8192, NULL, 1, NULL);
-  // xTaskCreate(sensorTask, "Sensor Task", 8192, NULL, 1, NULL);
-  // xTaskCreate(networkTask, "Network Task", 8192, NULL, 1, NULL);
+  createTasks(&globalState);
 }
 
 // UI responsibility
@@ -135,9 +136,5 @@ void internetDataLoop() {
 }
 
 void loop() {
-  uiLoop();
-  sensorLoop();
-  networkLoop();
-  internetDataLoop();
-  delay(2000); // Update every 2 seconds
+  vTaskDelay(pdMS_TO_TICKS(1000)); // Idle loop, tasks do the work
 }

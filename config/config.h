@@ -1,4 +1,4 @@
-#define SERIAL_DEBUG false // Set to false to disable serial prints
+#define SERIAL_DEBUG true // Set to false to disable serial prints
 #ifndef CONFIG_H
 #define CONFIG_H
 
