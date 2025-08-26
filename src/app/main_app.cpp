@@ -85,7 +85,14 @@ void networkTask(void* pvParameters) {
 	network_service_init(ap_ssid, ap_pass, sta_ssid, sta_pass);
 	while (true) {
 	NetworkInfo info = network_service_get_info();
-		// ... handle network events, update status ...
+	// Log network info
+	Serial.print("[Network] SSID: ");
+	Serial.println(info.ssid);
+	Serial.print("[Network] IP: ");
+	Serial.println(info.ip);
+	Serial.print("[Network] Status: ");
+	Serial.println(info.connected ? "Connected" : "Disconnected");
+	// ... handle network events, update status ...
 		vTaskDelay(pdMS_TO_TICKS(2000));
 	}
 }

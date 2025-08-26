@@ -10,7 +10,6 @@ void ui_systemInfo_screen_render(Adafruit_SSD1306& display, float temp, float hu
     display.getTextBounds("SYSTEM", 0, 0, &x1, &y1, &w, &h);
     display.setCursor((128 - w) / 2, 0);
     display.print("SYSTEM");
-    // ...existing code...
     display.setCursor(0, 10);
     display.print("RAM: ");
     int ramPercent = (int)((freeHeap * 100) / totalHeap);
