@@ -7,6 +7,7 @@ This project aims to build a versatile, industrial-grade IoT Network Server devi
 ### Hardware Platform
 
 **MCU:**
+
 - ESP32 C3 supermini
 **Displays:**
 - 128 x 64 [address 0x3C]
